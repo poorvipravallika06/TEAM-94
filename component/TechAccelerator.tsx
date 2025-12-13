@@ -92,6 +92,12 @@ const TechAccelerator: React.FC<TechAcceleratorProps> = ({ onNavigate }) => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    useEffect(() => {
+        // Reset custom features when company changes
+        setEnableCustomFeature(false);
+        setCustomFeatureOption('');
+    }, [selectedCompany]);
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             setResumeFile(e.target.files[0]);
