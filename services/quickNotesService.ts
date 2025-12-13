@@ -8,7 +8,7 @@ import { GoogleGenAI } from "@google/genai";
 const apiKey = (import.meta as any).env.VITE_API_KEY || '';
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
-export const generateNotesQuick = async (input: { content: string, mimeType?: string }): Promise<string> => {
+export const generateNotesQuick = async (input: { content: string, mimeType?: string, mode?: 'concise' | 'summary' | 'comprehensive' }): Promise<string> => {
     try {
         // Mock response if no API key
         if (!ai || !apiKey || apiKey === 'your_api_key_here') {
@@ -17,6 +17,81 @@ export const generateNotesQuick = async (input: { content: string, mimeType?: st
             return generateMockNotes(input.content);
         }
 
+        // Determine mode
+        const mode = input.mode || 'comprehensive';
+
+        // If concise mode, produce a compact summary
+        if (mode === 'concise') {
+            // Chunking: handle long documents by summarizing chunks then combining
+            const CHUNK_SIZE = 3500; // chars
+            const chunks: string[] = [];
+            const content = input.content || '';
+            for (let i = 0; i < content.length; i += CHUNK_SIZE) {
+                chunks.push(content.substring(i, i + CHUNK_SIZE));
+            }
+
+            const chunkSummaries: string[] = [];
+            for (const chunk of chunks) {
+                const concisePrompt = `You are a study-notes summarizer. Given the following text, produce a concise revision notes document.
+Requirements:
+- Maximum 500-700 words.
+- Use bullet points, short headings, and 8-12 key takeaways.
+- Avoid copying the source verbatim. Paraphrase and synthesize. If quoting, keep quotes shorter than 50 characters and include quotes only if necessary.
+- Provide a 3-item "Quick Study Tips" section and 5 practice questions (no long answers, just quick prompts).
+- Keep language simple and focused for quick revision.
+
+Content:
+${input.content.substring(0, 4000)}`;
+
+                const response = await (ai as any).generateContent({
+                    contents: [{ text: concisePrompt }],
+                    generationConfig: { maxOutputTokens: 1200, temperature: 0.2 }
+                });
+                const notes = response.candidates?.[0]?.content?.parts?.[0]?.text || 'Failed to generate concise notes.';
+                chunkSummaries.push(notes);
+            }
+
+            // Combine chunk summaries into final concise notes
+            const finalPrompt = `Combine and synthesize the following chunk summaries into a single concise revision notes document. Do not quote verbatim; paraphrase & condense. Output should be 500-700 words and include 8-12 key takeaways, 3 quick tips, and 5 practice prompts. Synthesize tone and avoid repetition.\n\n${chunkSummaries.join('\n\n--- Chunk Summary ---\n\n')}`;
+            const finalResponse = await (ai as any).generateContent({
+                contents: [{ text: finalPrompt }],
+                generationConfig: { maxOutputTokens: 1200, temperature: 0.2 }
+            });
+            const finalNotes = finalResponse.candidates?.[0]?.content?.parts?.[0]?.text || 'Failed to synthesize concise notes.';
+            return finalNotes;
+        }
+
+        // Summary mode: 3-5 pages (1500-2500 words)
+        if (mode === 'summary') {
+            // Chunking similar to concise, but allow larger output per chunk
+            const CHUNK_SIZE = 6000;
+            const content = input.content || '';
+            const chunks: string[] = [];
+            for (let i = 0; i < content.length; i += CHUNK_SIZE) {
+                chunks.push(content.substring(i, i + CHUNK_SIZE));
+            }
+
+            const chunkSummaries: string[] = [];
+            for (const chunk of chunks) {
+                const summaryPrompt = `Create a concise study guide of approximately 600-900 words for this chunk. Use headings, concise definitions, and bullet points. Paraphrase; avoid copying verbatim. Include 3 practice problems as prompts.\n\nChunk Content:\n${chunk}`;
+                const response = await (ai as any).generateContent({
+                    contents: [{ text: summaryPrompt }],
+                    generationConfig: { maxOutputTokens: 900, temperature: 0.25 }
+                });
+                const notes = response.candidates?.[0]?.content?.parts?.[0]?.text || 'Failed to generate chunk summary.';
+                chunkSummaries.push(notes);
+            }
+
+            const finalPrompt = `Combine the chunk summaries into a single 1500-2500 word study guide. Paraphrase; avoid quoting verbatim; highlight key takeaways, include a comparison section and 8 practice prompts.\n\n${chunkSummaries.join('\n\n--- Chunk Summary ---\n\n')}`;
+            const finalResponse = await (ai as any).generateContent({
+                contents: [{ text: finalPrompt }],
+                generationConfig: { maxOutputTokens: 2500, temperature: 0.25 }
+            });
+            const finalNotes = finalResponse.candidates?.[0]?.content?.parts?.[0]?.text || 'Failed to synthesize summary notes.';
+            return finalNotes;
+        }
+
+        // Comprehensive mode falls through to the existing big prompt
         // Comprehensive prompt for ~30 page notes
         const prompt = `Create EXTENSIVE and DETAILED study notes from this content. 
 

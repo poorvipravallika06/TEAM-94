@@ -37,6 +37,7 @@ const Notes: React.FC = () => {
     loadFaces();
   }, [showTrends]);
   const [useRAG, setUseRAG] = useState(true);
+  const [notesMode, setNotesMode] = useState<'concise' | 'summary' | 'comprehensive'>('concise');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,8 +119,8 @@ const Notes: React.FC = () => {
           
           // If text extraction successful, use it. Otherwise fall back to base64
           if (fullText.trim().length > 50) {
-            setProgress('Generating comprehensive 30-page notes (60-120 seconds)...');
-            notes = await generateNotesQuick({ content: fullText, mimeType: undefined });
+            setProgress(notesMode === 'concise' ? 'Generating concise notes (10-30 seconds)...' : notesMode === 'summary' ? 'Generating summary notes (30-60 seconds)...' : 'Generating comprehensive notes (60-120 seconds)...');
+            notes = await generateNotesQuick({ content: fullText, mimeType: undefined, mode: notesMode });
             
             // Enhance with RAG if enabled (done asynchronously)
             if (useRAG) {
@@ -143,14 +144,15 @@ const Notes: React.FC = () => {
           console.error('PDF text extraction or generation failed:', pdfErr);
           setProgress('Generating notes from PDF...');
           // Fall back to sending raw base64 to LLM
-          notes = await generateNotesQuick({ content: fileBase64, mimeType: 'application/pdf' });
+          notes = await generateNotesQuick({ content: fileBase64, mimeType: 'application/pdf', mode: notesMode });
         }
       } else {
         // Analyze pasted text - Faster since no PDF extraction needed
-        setProgress('Generating comprehensive 30-page notes (60-120 seconds)...');
+        setProgress(notesMode === 'concise' ? 'Generating concise notes (10-30 seconds)...' : notesMode === 'summary' ? 'Generating summary notes (30-60 seconds)...' : 'Generating comprehensive notes (60-120 seconds)...');
         notes = await generateNotesQuick({
           content: pastedText,
-          mimeType: undefined
+          mimeType: undefined,
+          mode: notesMode
         });
         
         // Enhance with RAG if enabled
