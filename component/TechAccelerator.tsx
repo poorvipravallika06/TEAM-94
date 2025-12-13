@@ -39,6 +39,7 @@ const COMPANIES = [
     { name: 'Amazon', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/1200px-Amazon_logo.svg.png', color: 'text-white', bg: 'bg-orange-600', border: 'border-orange-200' },
     { name: 'Apple', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/1200px-Apple_logo_black.svg.png', color: 'text-white', bg: 'bg-black', border: 'border-gray-800' },
     { name: 'TCS', logo: 'https://upload.wikimedia.org/wikipedia/en/b/b1/Tata_Consultancy_Services_Logo.svg', color: 'text-white', bg: 'bg-pink-600', border: 'border-pink-200' },
+    { name: 'Airbnb', logo: 'https://upload.wikimedia.org/wikipedia/commons/6/69/Airbnb_Logo_B%C3%A9lo.svg', color: 'text-white', bg: 'bg-red-500', border: 'border-red-200' },
     { name: 'Infosys', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/9/9b/Infosys_logo.svg/1200px-Infosys_logo.svg.png', color: 'text-white', bg: 'bg-blue-700', border: 'border-blue-300' },
     { name: 'Wipro', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/d/d7/Wipro_logo.svg/1200px-Wipro_logo.svg.png', color: 'text-white', bg: 'bg-green-600', border: 'border-green-300' },
     { name: 'HCL', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/3/35/HCL_Technologies_logo.svg/1200px-HCL_Technologies_logo.svg.png', color: 'text-white', bg: 'bg-purple-600', border: 'border-purple-300' },
@@ -69,6 +70,8 @@ const TechAccelerator: React.FC<TechAcceleratorProps> = ({ onNavigate }) => {
     const [role, setRole] = useState('Software Development Engineer (SDE I)');
     const [resumeText, setResumeText] = useState('');
     const [resumeFile, setResumeFile] = useState<File | null>(null);
+    const [enableCustomFeature, setEnableCustomFeature] = useState(false);
+    const [customFeatureOption, setCustomFeatureOption] = useState('');
     const [loading, setLoading] = useState(false);
     const [analysis, setAnalysis] = useState<CompanyFitAnalysis | null>(null);
     const [showDropdown, setShowDropdown] = useState(false);
@@ -133,11 +136,14 @@ const TechAccelerator: React.FC<TechAcceleratorProps> = ({ onNavigate }) => {
                 };
             }
 
+            // Add company-specific feature string for analysis
+            const featureText = enableCustomFeature && customFeatureOption ? `Company Feature Focus: ${customFeatureOption}` : '';
+
             const data = await analyzeCompanyFit(
-                resumeInput, 
-                selectedCompany, 
-                role, 
-                resumeText || ''
+                resumeInput,
+                selectedCompany,
+                role,
+                `${resumeText || ''}\n\n${featureText}`.trim()
             );
             
             if (data && data.matchScore !== undefined) {
@@ -287,6 +293,34 @@ const TechAccelerator: React.FC<TechAcceleratorProps> = ({ onNavigate }) => {
                                 </div>
                             </div>
 
+                                    {/* Company-specific Custom Feature */}
+                                    <div>
+                                        <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
+                                            <input type="checkbox" checked={enableCustomFeature} onChange={(e) => setEnableCustomFeature(e.target.checked)} className="w-4 h-4" />
+                                            <span>Enable Company-specific Customizations</span>
+                                        </label>
+                                        {enableCustomFeature && (
+                                            <div className="mt-2">
+                                                {selectedCompany === 'Airbnb' ? (
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs text-slate-500">Airbnb Focus Area</label>
+                                                        <select value={customFeatureOption} onChange={(e) => setCustomFeatureOption(e.target.value)} className="w-full p-3 bg-white border border-slate-300 rounded-lg text-sm">
+                                                            <option value="">Select a focus</option>
+                                                            <option value="Host-Centric Product Focus">Host-Centric Product Focus</option>
+                                                            <option value="Trust & Safety and Payments">Trust & Safety and Payments</option>
+                                                            <option value="Platform Scale & Infrastructure">Platform Scale & Infrastructure</option>
+                                                        </select>
+                                                    </div>
+                                                ) : (
+                                                    <div>
+                                                        <label className="text-xs text-slate-500">Custom Notes</label>
+                                                        <input value={customFeatureOption} onChange={(e) => setCustomFeatureOption(e.target.value)} placeholder="e.g. product led growth, event streaming" className="w-full p-3 bg-white border border-slate-300 rounded-lg text-sm" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
                             {/* Resume Upload */}
                              <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2">Upload Resume</label>
@@ -335,7 +369,7 @@ const TechAccelerator: React.FC<TechAcceleratorProps> = ({ onNavigate }) => {
 
                             <button 
                                 onClick={handleAnalyze}
-                                disabled={loading || (!resumeText && !resumeFile)}
+                                disabled={loading || (!resumeText && !resumeFile) || (enableCustomFeature && selectedCompany === 'Airbnb' && !customFeatureOption)}
                                 className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-lg shadow-slate-200"
                             >
                                 {loading ? <Loader2 className="animate-spin h-5 w-5" /> : "Analyze Readiness"}
@@ -404,6 +438,22 @@ const TechAccelerator: React.FC<TechAcceleratorProps> = ({ onNavigate }) => {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Applied Custom Feature */}
+                            {enableCustomFeature && customFeatureOption && (
+                                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 font-bold">CF</div>
+                                            <div>
+                                                <div className="text-sm text-slate-500">Applied Custom Feature</div>
+                                                <div className="text-sm font-bold text-slate-800">{customFeatureOption}</div>
+                                            </div>
+                                        </div>
+                                        <div className="text-xs text-slate-400">This focus was included in the analysis</div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Cultural Fit */}
                             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
