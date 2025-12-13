@@ -179,14 +179,6 @@ SYSTEM ARCHITECTURE :
 
 PROJECT IMPLEMENTATION - DEMO :
 
-
-
-
-https://youtu.be/qsijUYPE-xs?si=TfpIjDmgD_3fciQr
-
-
-
-
 <img width="1570" height="710" alt="image" src="https://github.com/user-attachments/assets/d273852f-3c30-45d5-8682-a68910279fa6" />
 
 
