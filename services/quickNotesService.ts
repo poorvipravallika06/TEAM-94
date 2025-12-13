@@ -93,7 +93,8 @@ ${input.content.substring(0, 4000)}`;
 
         // Comprehensive mode falls through to the existing big prompt
         // Comprehensive prompt for ~30 page notes
-        const prompt = `Create EXTENSIVE and DETAILED study notes from this content. 
+        const prompt = `IMPORTANT: Do NOT copy large verbatim excerpts from the source. Paraphrase and synthesize; if you must quote, keep quotes under 50 characters and add attribution.
+    Create EXTENSIVE and DETAILED study notes from this content. 
 
 TARGET: 25-30 pages, approximately 8000-10000 words of comprehensive material.
 

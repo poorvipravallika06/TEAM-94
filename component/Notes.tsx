@@ -460,6 +460,24 @@ const Notes: React.FC = () => {
                 placeholder="Paste paragraphs or topic names here..."
                 className="w-full h-64 p-4 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none text-slate-700 placeholder-slate-400"
               />
+            {/* Notes Mode Selector */}
+            <div className="mt-3">
+              <label className="block text-sm font-bold text-slate-700 mb-2">Notes Mode</label>
+              <div className="flex items-center gap-3">
+                <label className="inline-flex items-center gap-2 text-sm">
+                  <input type="radio" name="notesMode" checked={notesMode === 'concise'} onChange={() => setNotesMode('concise')} />
+                  <span>Concise</span>
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm">
+                  <input type="radio" name="notesMode" checked={notesMode === 'summary'} onChange={() => setNotesMode('summary')} />
+                  <span>Summary</span>
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm">
+                  <input type="radio" name="notesMode" checked={notesMode === 'comprehensive'} onChange={() => setNotesMode('comprehensive')} />
+                  <span>Comprehensive</span>
+                </label>
+              </div>
+            </div>
             </div>
 
             {/* RAG Enhancement Toggle */}
