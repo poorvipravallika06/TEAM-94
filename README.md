@@ -328,6 +328,23 @@ EduBridge transforms traditional engineering education into future-ready, indust
 
 
 
+AI - ML COMPONENTS 
+
+| Component                                | Model / Technology                                                          | Purpose / Function                                                                                                                                                    | Notes / Implementation Ideas                                                                             |
+| ---------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **Large Language Models (LLMs)**         | GPT-based models (local deployment via Ollama, Llama.cpp, etc.)             | - Provide real-time guidance and mentoring to students <br> - Answer domain-specific queries <br> - Explain complex concepts in simple language                       | Deployed locally for privacy and offline capabilities; fine-tuned on engineering subjects and MNC tools  |
+| **Retrieval-Augmented Generation (RAG)** | Vector database + embedding models (e.g., OpenAI embeddings, FAISS, Milvus) | - Retrieve relevant content from PDFs, notes, and industry resources <br> - Provide context-aware answers and suggestions <br> - Support LLM with accurate references | Converts static learning materials into dynamic, queryable knowledge; improves LLM accuracy              |
+| **AI Agents**                            | Rule-based + Reinforcement Learning agents                                  | - Provide adaptive tutoring <br> - Monitor learning pace and suggest content dynamically <br> - Conduct interactive sessions, quizzes, and challenges                 | Acts as a personalized tutor; can dynamically select content based on skill gaps                         |
+| **Skill Gap Analyzer**                   | ML classification/regression models (e.g., Random Forest, XGBoost)          | - Compare student performance with industry benchmarks <br> - Identify skill deficiencies in specific domains <br> - Recommend learning paths                         | Uses historical student data + MNC requirements to predict gaps and suggest personalized modules         |
+| **Gamification Engine**                  | ML-based recommendation models                                              | - Suggest quizzes, challenges, and interactive games based on student performance <br> - Optimize learning engagement                                                 | Uses reinforcement learning or collaborative filtering to personalize gamified content                   |
+| **AI Guardians (Safety & Security)**     | Anomaly detection + rule-based AI                                           | - Monitor student activity <br> - Detect misuse of AI <br> - Ensure safe, responsible AI interactions                                                                 | Monitors LLM/agent outputs; prevents sharing of sensitive data; integrates security protocols            |
+| **Evaluation Mechanisms (Evals)**        | Benchmarking + automated scoring models                                     | - Evaluate AI responses <br> - Grade mock interviews, quizzes, and interactive exercises <br> - Provide feedback on student understanding                             | Implements automated evaluation of content and AI interactions to maintain reliability and effectiveness |
+| **Content Embeddings & Vectorization**   | Sentence transformers / embedding models                                    | - Convert PDFs, notes, and resources into vector embeddings for retrieval <br> - Enable semantic search within the platform                                           | Essential for RAG and personalized learning retrieval                                                    |
+| **PDF/Content Conversion ML**            | NLP summarization & paraphrasing models                                     | - Simplify lengthy PDFs into concise notes <br> - Generate student-friendly explanations                                                                              | Can use transformer-based summarization models (e.g., T5, BART) for note generation                      |
+
+
+
+BUSSINESS CANVAS MODEL: 
 
 
 
