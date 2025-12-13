@@ -80,3 +80,12 @@ export interface QuizQuestion {
   options: string[];
   correctIndex: number;
 }
+
+export interface StudentHistory {
+  name?: string;
+  email?: string;
+  semesters?: string[];
+  pastScores: number[]; // percentages per semester/month
+  attendance: number[]; // percentages per semester/month
+  studyHours?: number[];
+}

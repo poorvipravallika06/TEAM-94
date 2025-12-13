@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getTrendAnalytics } from '../services/geminiServices';
+import { getTrendAnalytics, getNewsHeadlines } from '../services/geminiServices';
 import { Loader2, Zap, Search, ArrowUpRight, TrendingUp, Activity, DollarSign, Sparkles, BarChart3, Target } from 'lucide-react';
 import { 
     ComposedChart, Line, Area, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart 
@@ -71,6 +71,8 @@ const getMockTrendData = (): TrendData[] => {
 const Trends: React.FC = () => {
     const [chartData, setChartData] = useState<TrendData[]>([]);
     const [loading, setLoading] = useState(true);
+    const [news, setNews] = useState<Record<string, any[]>>({});
+    const [activeHeadline, setActiveHeadline] = useState<{category: string, idx: number} | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -83,6 +85,10 @@ const Trends: React.FC = () => {
                     // Use mock data if API returns empty
                     setChartData(getMockTrendData());
                 }
+                // Fetch news headlines for the same domains using our new service
+                const categories = analyticsData?.map((t: any) => t.technology) || ['Data Science', 'Gen AI', 'Cybersecurity', 'Machine Learning', 'DevOps'];
+                const headlines = await getNewsHeadlines(categories);
+                setNews(headlines || {});
             } catch (error) {
                 console.error("Failed to load trends", error);
                 // Use mock data on error
@@ -134,6 +140,34 @@ const Trends: React.FC = () => {
                 ) : (
                     <div className="space-y-10">
                         {/* Top 5 Distinct Trend Cards */}
+                        {/* News Flashcards */}
+                        <div className="mb-6">
+                            <h3 className="text-xl font-bold text-slate-800 mb-3">Latest Headlines</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                                {Object.keys(news).map((cat, i) => {
+                                    const items = news[cat] || [];
+                                    const top = items[0] || { title: 'No headlines', description: '' };
+                                    return (
+                                        <div key={i} className="relative rounded-xl border border-slate-200 bg-white p-4 shadow-sm cursor-pointer hover:shadow-lg transition" onClick={() => setActiveHeadline({category: cat, idx: 0})} onMouseEnter={() => setActiveHeadline({category: cat, idx: 0})} onMouseLeave={() => setActiveHeadline(null)}>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="font-bold text-sm text-slate-700">{cat}</div>
+                                                <div className="text-xs text-slate-400">{items.length} items</div>
+                                            </div>
+                                            <div className="text-base font-medium text-slate-800 leading-tight mb-2 line-clamp-2">{top.title}</div>
+                                            <div className="text-xs text-slate-500 line-clamp-2">{top.description}</div>
+                                            {/* Popover for headline */}
+                                            {activeHeadline && activeHeadline.category === cat && (
+                                                <div className="absolute top-0 left-0 w-full h-full bg-white/95 p-4 rounded-xl shadow-lg flex flex-col justify-center items-start">
+                                                    {items.map((h, idx) => (
+                                                        <div key={idx} className={`mb-2 ${idx === 0 ? 'font-bold' : ''} text-sm`}>{h.title} <span className="text-xs text-slate-400">- {h.source}</span></div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
                             {chartData.map((tech, index) => {
                                 const color = COLORS[index % COLORS.length];

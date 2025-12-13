@@ -1,6 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
-import { generateNotes } from '../services/geminiServices';
+import { generateNotesQuick } from '../services/quickNotesService';
+import { generateRAGResponse } from '../services/ragServices';
 import { Upload, FileText, X, Download, Loader2, File, Eye, Camera } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 // WebcamFaceRecognition and PDFViewer removed per new requirements
@@ -12,7 +14,29 @@ const Notes: React.FC = () => {
   const [pastedText, setPastedText] = useState('');
   const [generatedNotes, setGeneratedNotes] = useState('');
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState<string>('');
   const [showCameraView, setShowCameraView] = useState(false);
+  const [sessionEmotion, setSessionEmotion] = useState<Record<string, number> | null>(null);
+  const [showTrends, setShowTrends] = useState(false);
+  const [facesList, setFacesList] = useState<any[]>([]);
+  const [selectedFace, setSelectedFace] = useState<string | null>(null);
+  const [faceEvents, setFaceEvents] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!showTrends) return;
+    const loadFaces = async () => {
+      try {
+        const server = process.env.REACT_APP_GVP_SERVER || 'http://localhost:4000';
+        const res = await fetch(server + '/faces');
+        const json = await res.json();
+        setFacesList(json || []);
+      } catch (e) {
+        // ignore
+      }
+    };
+    loadFaces();
+  }, [showTrends]);
+  const [useRAG, setUseRAG] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,22 +78,30 @@ const Notes: React.FC = () => {
     }
 
     setLoading(true);
+    setProgress('Initializing...');
     setGeneratedNotes('');
 
     try {
       let notes: string;
+      let extractedText = '';
 
       if (fileBase64) {
-        // Extract text from PDF using pdfjs and send the extracted text to LLM
+        // Extract text from PDF using pdfjs
         try {
+          setProgress('Extracting text from PDF...');
           // set worker from CDN to avoid bundler issues
           (pdfjsLib as any).GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
           const uint8 = base64ToUint8Array(fileBase64);
           const loadingTask: any = pdfjsLib.getDocument({ data: uint8 });
           const pdf = await loadingTask.promise;
+          
+          // Limit to first 10 pages for speed
+          const maxPages = Math.min(10, pdf.numPages);
           let fullText = '';
-          for (let i = 1; i <= pdf.numPages; i++) {
+          
+          for (let i = 1; i <= maxPages; i++) {
+            setProgress(`Extracting page ${i} of ${maxPages}...`);
             // eslint-disable-next-line no-await-in-loop
             const page = await pdf.getPage(i);
             // eslint-disable-next-line no-await-in-loop
@@ -77,26 +109,73 @@ const Notes: React.FC = () => {
             const strings = content.items.map((item: any) => item.str || '').join(' ');
             fullText += `\n\n--- Page ${i} ---\n` + strings;
           }
-
-          // If extracted text is too short, still pass it and instruct LLM to elaborate strictly from this content
-          notes = await generateNotes({ content: fullText, mimeType: undefined });
+          
+          if (maxPages < pdf.numPages) {
+            fullText += `\n\n[... Document continues for ${pdf.numPages - maxPages} more pages]`;
+          }
+          
+          extractedText = fullText;
+          
+          // If text extraction successful, use it. Otherwise fall back to base64
+          if (fullText.trim().length > 50) {
+            setProgress('Generating comprehensive 30-page notes (60-120 seconds)...');
+            notes = await generateNotesQuick({ content: fullText, mimeType: undefined });
+            
+            // Enhance with RAG if enabled (done asynchronously)
+            if (useRAG) {
+              setProgress('Enhancing with knowledge base...');
+              try {
+                const ragResult = await generateRAGResponse({ 
+                  question: `Summarize and create detailed study notes for: ${fullText.substring(0, 300)}` 
+                });
+                if (ragResult.answer) {
+                  notes = `${notes}\n\n---\n\n**Knowledge Base Enhancement:**\n${ragResult.answer}`;
+                }
+              } catch (ragErr) {
+                console.log('RAG enhancement skipped:', ragErr);
+                // Continue without RAG enhancement
+              }
+            }
+          } else {
+            throw new Error('Extracted text too short');
+          }
         } catch (pdfErr) {
-          console.error('PDF text extraction failed, falling back to sending raw base64 to LLM', pdfErr);
-          // Fall back to previous behavior if extraction fails
-          notes = await generateNotes({ content: fileBase64, mimeType: 'application/pdf' });
+          console.error('PDF text extraction or generation failed:', pdfErr);
+          setProgress('Generating notes from PDF...');
+          // Fall back to sending raw base64 to LLM
+          notes = await generateNotesQuick({ content: fileBase64, mimeType: 'application/pdf' });
         }
       } else {
-        // Analyze pasted text
-        notes = await generateNotes({
+        // Analyze pasted text - Faster since no PDF extraction needed
+        setProgress('Generating comprehensive 30-page notes (60-120 seconds)...');
+        notes = await generateNotesQuick({
           content: pastedText,
           mimeType: undefined
         });
+        
+        // Enhance with RAG if enabled
+        if (useRAG) {
+          setProgress('Enhancing with knowledge base...');
+          try {
+            const ragResult = await generateRAGResponse({ 
+              question: `Create detailed study notes for: ${pastedText.substring(0, 300)}` 
+            });
+            if (ragResult.answer) {
+              notes = `${notes}\n\n---\n\n**Knowledge Base Enhancement:**\n${ragResult.answer}`;
+            }
+          } catch (ragErr) {
+            console.log('RAG enhancement skipped:', ragErr);
+          }
+        }
       }
 
+      setProgress('');
       setGeneratedNotes(notes);
     } catch (error) {
       console.error('Error generating notes:', error);
-      alert('Failed to generate notes. Please try again.');
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to generate notes: ${errorMsg}. Make sure your API key is configured in .env file.`);
+      setProgress('');
     } finally {
         setLoading(false);
     }
@@ -292,6 +371,16 @@ const Notes: React.FC = () => {
     handleDownloadPDF();
   };
 
+  const resetEmotionPoints = () => {
+    try {
+      const zero = { happy:0, sad:0, angry:0, neutral:0, surprised:0, fearful:0, disgusted:0, dull:0 };
+      localStorage.setItem('gvp_emotion_points', JSON.stringify(zero));
+      localStorage.setItem('gvp_pending_labs', '0');
+    } catch (e) {
+      // ignore
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
@@ -343,13 +432,14 @@ const Notes: React.FC = () => {
                   >
                     <X className="h-4 w-4" />
                     Remove File
-                  </button>
-        </div>
+                  <button
+                    onClick={() => { resetEmotionPoints(); setShowCameraView(true); }}
               )}
       </div>
 
             {/* Text Paste Section */}
             <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+                  <button onClick={() => setShowTrends(true)} className="flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-2 rounded-lg text-sm">View Trends</button>
               <div className="flex items-center gap-2 mb-4">
                 <div className="flex-1 h-px bg-slate-200"></div>
                 <span className="text-sm font-medium text-slate-500 uppercase">OR PASTE TEXT</span>
@@ -370,6 +460,21 @@ const Notes: React.FC = () => {
               />
             </div>
 
+            {/* RAG Enhancement Toggle */}
+            <div className="flex items-center gap-3 bg-blue-50 p-3 rounded-lg mb-4 border border-blue-200">
+              <input 
+                type="checkbox" 
+                id="rag-toggle"
+                checked={useRAG}
+                onChange={(e) => setUseRAG(e.target.checked)}
+                className="w-4 h-4 text-blue-600 rounded"
+              />
+              <label htmlFor="rag-toggle" className="text-sm text-slate-700 cursor-pointer">
+                <span className="font-semibold">Enhance with Knowledge Base</span>
+                <span className="text-xs text-slate-500 block">Adds extra processing time but improves quality</span>
+              </label>
+            </div>
+
             {/* Generate Button */}
                       <button 
               onClick={handleGenerateNotes}
@@ -379,7 +484,10 @@ const Notes: React.FC = () => {
               {loading ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  Generating Notes...
+                  <div className="text-left">
+                    <div>Generating Notes...</div>
+                    <div className="text-xs opacity-80">{progress}</div>
+                  </div>
                 </>
               ) : (
                 <>
@@ -400,7 +508,7 @@ const Notes: React.FC = () => {
               {generatedNotes && (
                 <div className="flex gap-2 flex-wrap">
                   <button
-                    onClick={() => setShowCameraView(true)}
+                    onClick={() => { resetEmotionPoints(); setShowCameraView(true); }}
                     className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-red-500 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all text-sm font-medium"
                   >
                     <Camera className="h-4 w-4" />
@@ -461,7 +569,66 @@ const Notes: React.FC = () => {
           studentLanguage="English"
           onClose={() => setShowCameraView(false)}
           onDownload={handleDownloadFromViewer}
+          onSessionUpdate={(points) => setSessionEmotion(points)}
         />
+      )}
+
+      {/* Mini session emotion chart */}
+      {sessionEmotion && (
+        <div className="mt-4 bg-white rounded-lg p-4 shadow-sm border border-slate-200">
+          <h4 className="text-sm font-semibold mb-2">Session Emotion Snapshot</h4>
+            <ResponsiveContainer width="100%" height={120}>
+            <BarChart data={Object.entries(sessionEmotion).map(([k, v]) => ({ emotion: k, value: Math.max(0, Math.min(100, Math.round(50 + (Number(v) || 0)))) }))} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" domain={[0, 100]} hide />
+              <YAxis dataKey="emotion" type="category" />
+              <Tooltip />
+              <Bar dataKey="value" fill="#6366f1" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Trends Modal */}
+      {showTrends && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-3xl w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Per-Person Trends</h3>
+              <button className="text-sm text-slate-600" onClick={() => setShowTrends(false)}>Close</button>
+            </div>
+            <div className="mb-4 flex items-center gap-2">
+              <select className="p-2 border rounded" value={selectedFace || ''} onChange={(e) => setSelectedFace(e.target.value || null)}>
+                <option value="">Select a face</option>
+                {facesList.map(f => <option key={f.id} value={f.label}>{f.label}</option>)}
+              </select>
+              <button className="px-3 py-2 bg-indigo-600 text-white rounded" onClick={async () => {
+                if (!selectedFace) return;
+                try {
+                  const server = process.env.REACT_APP_GVP_SERVER || 'http://localhost:4000';
+                  const res = await fetch(server + `/events?face_label=${encodeURIComponent(selectedFace)}`);
+                  const json = await res.json();
+                  setFaceEvents(json.reverse());
+                } catch (e) {}
+              }}>Load</button>
+            </div>
+            <div>
+              {faceEvents.length === 0 ? (
+                <div className="text-sm text-slate-500">No events loaded.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={faceEvents.map(ev => ({ ts: new Date(ev.timestamp).toLocaleTimeString(), value: Number(ev.delta || 0) }))}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="ts" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

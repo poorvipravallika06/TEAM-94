@@ -469,7 +469,7 @@ const TechAccelerator: React.FC<TechAcceleratorProps> = ({ onNavigate }) => {
                                                                 ))}
                                                             </ul>
                                                         ) : (
-                                                            <p className="text-sm text-slate-500">{week.description || 'No specific tasks defined.'}</p>
+                                                              <p className="text-sm text-slate-500">{(week as any).description || 'No specific tasks defined.'}</p>
                                                         )}
                                                         <div className="mt-4 flex gap-2">
                                                             {idx === 0 && (

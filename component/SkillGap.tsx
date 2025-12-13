@@ -1,8 +1,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { analyzeSkillGap } from '../services/geminiServices';
-import { SkillAnalysis } from '../types';
+import { SkillAnalysis, StudentHistory } from '../types';
 import { Loader2, CheckCircle, XCircle, Briefcase, ChevronDown, Upload, FileText, X, ExternalLink, BookOpen } from 'lucide-react';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, BarChart, Bar } from 'recharts';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
+import { parseResume, predictPerformance } from '../services/mlServices';
+import { getStudentHistoryByEmail } from '../services/studentService';
 
 const COMMON_ROLES = [
   'Full Stack Developer', 'Frontend Developer', 'Backend Developer',
@@ -15,6 +19,8 @@ const SkillGap: React.FC = () => {
   const [targetRole, setTargetRole] = useState('Full Stack Developer');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SkillAnalysis | null>(null);
+  const [studentHistory, setStudentHistory] = useState<StudentHistory | null>(null);
+  const [performance, setPerformance] = useState<any | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -38,6 +44,8 @@ const SkillGap: React.FC = () => {
     if (!resumeFile) return;
     setLoading(true);
     setResult(null); // Clear previous results
+    setStudentHistory(null);
+    setPerformance(null);
     
     try {
       // Optimized file reading with Promise
@@ -57,8 +65,31 @@ const SkillGap: React.FC = () => {
         { content: base64String, mimeType: resumeFile.type || 'application/pdf' }, 
         targetRole
       );
-      
       setResult(data);
+
+      // Extract text from PDF (client-side) to parse resume (email/name)
+      try {
+        const arrayBuffer = await resumeFile.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let rawText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          rawText += content.items.map((it: any) => it.str).join(' ') + '\n';
+        }
+
+        // lightweight parse
+        const parsed = parseResume(rawText);
+        const lookupKey = parsed.email || parsed.name || '';
+        const history = await getStudentHistoryByEmail(lookupKey);
+        setStudentHistory(history);
+
+        // Predict performance
+        const perf = predictPerformance({ pastScores: history.pastScores, studyHours: history.studyHours });
+        setPerformance(perf);
+      } catch (e) {
+        console.warn('Could not extract student history:', e);
+      }
     } catch (e) {
       console.error("Analysis error:", e);
       alert("Analysis failed. Please try again.");
@@ -143,6 +174,43 @@ const SkillGap: React.FC = () => {
           >
             {loading ? <Loader2 className="animate-spin h-5 w-5" /> : "Analyze Gap"}
           </button>
+          {studentHistory && (
+            <div className="mt-6 bg-slate-50 p-4 rounded-lg border border-slate-100">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h5 className="text-sm font-semibold text-slate-700">Recent Performance</h5>
+                  <p className="text-xs text-slate-500">Last few semesters / months</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-lg font-bold">{performance ? `${performance.predictedScore}%` : `${studentHistory.pastScores.slice(-1)[0]}%`}</div>
+                  <p className="text-xs text-slate-500">Predicted / Latest</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="col-span-1">
+                  <ResponsiveContainer width="100%" height={70}>
+                    <AreaChart data={studentHistory.pastScores.map((s,i) => ({ label: studentHistory.semesters?.[i] || `${i+1}`, value: s }))}>
+                      <XAxis dataKey="label" hide />
+                      <YAxis hide domain={[0, 100]} />
+                      <Tooltip wrapperStyle={{ display: 'none' }} />
+                      <Area dataKey="value" stroke="#6366f1" fill="#c7d2fe" strokeWidth={2} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="col-span-1">
+                  <ResponsiveContainer width="100%" height={70}>
+                    <BarChart data={studentHistory.attendance.map((a,i) => ({ label: studentHistory.semesters?.[i] || `${i+1}`, value: a }))}>
+                      <XAxis dataKey="label" hide />
+                      <YAxis hide domain={[0, 100]} />
+                      <Tooltip wrapperStyle={{ display: 'none' }} />
+                      <Bar dataKey="value" fill="#34d399" radius={[6,6,0,0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-200 min-h-[400px]">
@@ -215,6 +283,57 @@ const SkillGap: React.FC = () => {
                   ))}
                 </ul>
               </div>
+
+              {studentHistory && (
+                <div>
+                  <h4 className="font-bold text-slate-800 flex items-center gap-2 mt-4 mb-2">Academic History</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                      <h5 className="text-sm text-slate-600 mb-2">Past Scores</h5>
+                      <ResponsiveContainer width="100%" height={150}>
+                        <AreaChart data={studentHistory.pastScores.map((s,i) => ({ label: studentHistory.semesters?.[i] || `S${i+1}`, score: s }))}>
+                          <XAxis dataKey="label" stroke="#94a3b8" />
+                          <YAxis domain={[0, 100]} stroke="#94a3b8" />
+                          <Tooltip />
+                          <Area dataKey="score" stroke="#6366f1" fill="#c7d2fe" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                      <h5 className="text-sm text-slate-600 mb-2">Attendance</h5>
+                      <ResponsiveContainer width="100%" height={150}>
+                        <BarChart data={studentHistory.attendance.map((a,i) => ({ label: studentHistory.semesters?.[i] || `S${i+1}`, attendance: a }))}>
+                          <XAxis dataKey="label" stroke="#94a3b8" />
+                          <YAxis domain={[0, 100]} stroke="#94a3b8" />
+                          <Tooltip />
+                          <Bar dataKey="attendance" fill="#34d399" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {performance && (
+                    <div className="mt-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-slate-500">Predicted Performance</p>
+                          <div className="text-2xl font-bold text-slate-800">{performance.predictedScore}%</div>
+                          <p className="text-sm text-slate-600">Trend: {performance.trend}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-slate-500">Study Recommendations</p>
+                          <ul className="text-sm text-slate-600">
+                            {performance.recommendations.map((r: string, idx: number) => (
+                              <li key={idx}>• {r}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -30,6 +30,34 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate, user }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [attendance, setAttendance] = useState<number>(0);
+  const [attentionSpan, setAttentionSpan] = useState<number>(0);
+  const [placementScore, setPlacementScore] = useState<number>(0);
+  const [pendingLabs, setPendingLabs] = useState<number>(0);
+
+  useEffect(() => {
+    const computeMetricsFromEmotionPoints = () => {
+      try {
+        const raw = localStorage.getItem('gvp_emotion_points');
+        if (!raw) return;
+        const points = JSON.parse(raw) as Record<string, number>;
+        const sumPoints = Object.values(points).reduce((a, b) => a + (Number(b) || 0), 0);
+        const attendanceVal = Math.max(0, Math.min(100, 50 + Math.round(sumPoints)));
+        const attentionVal = Math.max(0, Math.min(100, 50 + Math.round((points.happy || 0) + (points.neutral || 0) - (points.dull || 0))));
+        const placementVal = Math.max(0, Math.min(100, Math.round((attendanceVal + attentionVal) / 2)));
+        const pending = Number(localStorage.getItem('gvp_pending_labs') || 0);
+        setAttendance(attendanceVal);
+        setAttentionSpan(attentionVal);
+        setPlacementScore(placementVal);
+        setPendingLabs(pending);
+      } catch (e) {
+        // ignore
+      }
+    };
+    computeMetricsFromEmotionPoints();
+    const interval = setInterval(computeMetricsFromEmotionPoints, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -169,7 +197,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, user }) => {
                 <TrendingUp className="h-5 w-5 text-green-600" />
               </div>
             </div>
-            <h3 className="text-3xl font-bold text-slate-800 mb-1">92%</h3>
+            <h3 className="text-3xl font-bold text-slate-800 mb-1">{attendance}%</h3>
             <p className="text-sm text-slate-600">Attendance</p>
           </div>
         </div>
@@ -186,7 +214,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, user }) => {
                 <TrendingDown className="h-5 w-5 text-rose-600" />
               </div>
             </div>
-            <h3 className="text-3xl font-bold text-slate-800 mb-1">85%</h3>
+            <h3 className="text-3xl font-bold text-slate-800 mb-1">{attentionSpan}%</h3>
             <p className="text-sm text-slate-600">Attention Span</p>
           </div>
         </div>
@@ -203,7 +231,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, user }) => {
                 <TrendingUp className="h-5 w-5 text-green-600" />
               </div>
             </div>
-            <h3 className="text-3xl font-bold text-slate-800 mb-1">78%</h3>
+            <h3 className="text-3xl font-bold text-slate-800 mb-1">{placementScore}%</h3>
             <p className="text-sm text-slate-600">Placement Score</p>
           </div>
         </div>
@@ -220,7 +248,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, user }) => {
                 <AlertCircle className="h-5 w-5 text-amber-600" />
               </div>
             </div>
-            <h3 className="text-3xl font-bold text-slate-800 mb-1">2</h3>
+            <h3 className="text-3xl font-bold text-slate-800 mb-1">{pendingLabs}</h3>
             <p className="text-sm text-slate-600">Pending Labs</p>
           </div>
         </div>

@@ -7,7 +7,7 @@ import { GoogleGenAI } from "@google/genai";
 import { generateRAGResponse } from "./ragServices";
 import { matchPeers, predictPerformance } from "./mlServices";
 
-const apiKey = import.meta.env.VITE_API_KEY || '';
+const apiKey = (import.meta as any).env.VITE_API_KEY || '';
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 interface AgentState {
@@ -69,7 +69,7 @@ export const courseRecommendationAgent = async (
       };
     } else {
       const assessmentPrompt = `Analyze these skills for a ${profile.targetRole} role: ${profile.currentSkills.join(', ')}. Return JSON with proficiencyLevel, strongAreas, weakAreas.`;
-      const response = await ai.generateContent({ contents: [{ text: assessmentPrompt }] });
+      const response = await (ai as any).generateContent({ contents: [{ text: assessmentPrompt }] });
       try {
         const responseText = response.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
         agentState.context.assessmentResults = JSON.parse(responseText.match(/\{[\s\S]*\}/)?.[0] || '{}');
@@ -110,7 +110,7 @@ export const courseRecommendationAgent = async (
     const timelinePrompt = `Create a realistic 3-month learning plan to transition to ${profile.targetRole} from current skills: ${profile.currentSkills.join(', ')}. Include weekly milestones.`;
     
     if (ai && apiKey && apiKey !== 'your_api_key_here') {
-      const timelineResponse = await ai.generateContent({ contents: [{ text: timelinePrompt }] });
+      const timelineResponse = await (ai as any).generateContent({ contents: [{ text: timelinePrompt }] });
       agentState.context.learningPlan = timelineResponse.candidates?.[0]?.content?.parts?.[0]?.text;
     } else {
       agentState.context.learningPlan = `
@@ -154,7 +154,7 @@ Week 9-12: Capstone Project & Interview Prep`;
  */
 export const jobMatchingAgent = async (
   userProfile: any,
-  targetCompanies?: string[]
+  _targetCompanies?: string[]
 ): Promise<AgentState> => {
   const agentState: AgentState = {
     taskId: `agent_${Date.now()}`,

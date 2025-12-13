@@ -5,7 +5,7 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-const apiKey = import.meta.env.VITE_API_KEY || '';
+const apiKey = (import.meta as any).env.VITE_API_KEY || '';
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 interface Document {
@@ -170,7 +170,7 @@ Question: ${query.question}
 
 Provide a clear, concise answer focusing on the provided information. If the information isn't sufficient, acknowledge it.`;
     
-    const response = await ai.generateContent({
+    const response = await (ai as any).generateContent({
       contents: [{ text: prompt }]
     });
     

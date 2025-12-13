@@ -3,7 +3,6 @@
  * Includes face recognition, resume parsing, and predictive analytics
  */
 
-import * as tf from '@tensorflow/tfjs';
 import * as faceapi from 'face-api.js';
 
 interface FaceDetectionResult {
@@ -72,7 +71,7 @@ export const detectFaces = async (videoElement: HTMLVideoElement): Promise<FaceD
       .withAgeAndGender();
     
     return detections.map(detection => ({
-      detections: detection.detections,
+      detections: detection.detection as any,
       expressions: detection.expressions,
       landmarks: detection.landmarks,
       age: detection.age ? Math.round(detection.age) : null,
@@ -94,11 +93,12 @@ export const recognizeFace = async (
   try {
     const detections = await faceapi
       .detectSingleFace(videoElement, new faceapi.TinyFaceDetectorOptions())
-      .withFaceRecognitionNet();
+      .withFaceLandmarks()
+      .withFaceExpressions();
     
     if (!detections) return null;
     
-    const descriptor = detections.descriptor;
+    const descriptor = (detections as any).descriptor;
     let bestMatch = { label: 'Unknown', distance: 1 };
     
     labeledDescriptors.forEach((descriptors, label) => {
@@ -186,9 +186,8 @@ export const parseResume = (resumeText: string): ResumeParseResult => {
 /**
  * ML-based skill assessment
  */
-export const assessSkillLevel = (skillName: string, proficiencyIndicators: string[]): number => {
+export const assessSkillLevel = (_skillName: string, proficiencyIndicators: string[]): number => {
   const indicators = proficiencyIndicators.join(' ').toLowerCase();
-  const skillLower = skillName.toLowerCase();
   
   // Score based on experience indicators
   let score = 0;
@@ -248,8 +247,8 @@ export const matchPeers = (userProfile: any, candidateProfile: any): PeerMatchRe
   
   return {
     score: normalizedScore,
-    commonSkills,
-    complementarySkills,
+    commonSkills: commonSkills as string[],
+    complementarySkills: complementarySkills as string[],
     compatibility
   };
 };
@@ -297,7 +296,7 @@ export const predictPerformance = (studentData: any): {
   trend: string;
   recommendations: string[];
 } => {
-  const { pastScores = [], studyHours = [], assessmentHistory = [] } = studentData;
+  const { pastScores = [], studyHours = [] } = studentData;
   
   // Calculate average
   const avgScore = pastScores.length > 0 

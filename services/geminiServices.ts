@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-const apiKey = import.meta.env.VITE_API_KEY || '';
+const apiKey = (import.meta as any).env?.VITE_API_KEY || '';
 
 if (!apiKey) {
   console.warn('VITE_API_KEY is not set. AI features will not work. Please add your Google Gemini API key to .env file.');
@@ -515,6 +515,64 @@ export const getTrendAnalytics = async (): Promise<any> => {
     return getMockTrendAnalytics();
   }
 }
+
+// 4.1 News Headlines for Trends (per domain)
+export const getNewsHeadlines = async (categories: string[] = ['Data Science', 'Gen AI', 'Cybersecurity', 'Machine Learning', 'DevOps']) => {
+  try {
+    const newsApiKey = (import.meta as any).env?.VITE_NEWS_API_KEY || '';
+    if (!newsApiKey) {
+      console.warn('VITE_NEWS_API_KEY is not set. Using mock headlines.');
+      // Quick mock headlines mapping
+      const sample = {
+        'Data Science': [
+          { title: 'Data-driven AI models power new healthcare breakthroughs', source: 'TechCrunch', url: '#', publishedAt: new Date().toISOString(), description: 'New models are being trained on federated datasets to improve diagnoses.' },
+          { title: 'Open-source tools accelerate data scientist workflows', source: 'InfoQ', url: '#', publishedAt: new Date().toISOString(), description: 'Tooling and pipelines get integrated auto-insights and monitoring.' },
+        ],
+        'Gen AI': [
+          { title: 'Generative AI tools enable rapid content creation at scale', source: 'The Verge', url: '#', publishedAt: new Date().toISOString(), description: 'GenAI usage continues to surge in creative industries.' },
+          { title: 'Regulators take a closer look at toxin generation', source: 'Reuters', url: '#', publishedAt: new Date().toISOString(), description: 'Policies are developing to guard against misuse.' },
+        ],
+        'Cybersecurity': [
+          { title: 'New zero-day vulnerabilities reported in critical infrastructure', source: 'Krebs', url: '#', publishedAt: new Date().toISOString(), description: 'Security updates advised for all affected stacks.' },
+          { title: 'Phishing campaigns become more targeted with AI', source: 'BleepingComputer', url: '#', publishedAt: new Date().toISOString(), description: 'AI helps craft convincing spear-phishing emails.' },
+        ],
+        'Machine Learning': [
+          { title: 'TinyML enables low-power on-device ML for edge devices', source: 'Wired', url: '#', publishedAt: new Date().toISOString(), description: 'Edge ML reduces cloud compute needs for some analytics.' },
+          { title: 'Automated ML improvements reduce model training time', source: 'ArsTechnica', url: '#', publishedAt: new Date().toISOString(), description: 'AutoML pipelines speed up experimentation.' },
+        ],
+        'DevOps': [
+          { title: 'Infrastructure as Code shifts to policy-as-code paradigms', source: 'InfoWorld', url: '#', publishedAt: new Date().toISOString(), description: 'Controls and guardrails are being enforced through code.' },
+          { title: 'GitOps adoption grows across enterprises', source: 'The Register', url: '#', publishedAt: new Date().toISOString(), description: 'Continuous deployment now driven by GitOps workflows.' },
+        ]
+      } as Record<string, any[]>;
+      const result: Record<string, any[]> = {};
+      categories.forEach(c => { result[c] = sample[c] || sample['Data Science']; });
+      return result;
+    }
+
+    // Use NewsAPI.org by default; can be replaced by any provider
+    // We will fetch top headlines for each category using 'q' parameter
+    const responses = await Promise.all(categories.map(async (c) => {
+      const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(c)}&language=en&sortBy=publishedAt&pageSize=5&apiKey=${newsApiKey}`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return { category: c, articles: [] };
+        const json = await res.json();
+        const articles = (json.articles || []).map((a: any) => ({ title: a.title, description: a.description, url: a.url, source: a.source?.name, publishedAt: a.publishedAt }));
+        return { category: c, articles };
+      } catch (err) {
+        return { category: c, articles: [] };
+      }
+    }));
+
+    const mapped: Record<string, any[]> = {};
+    responses.forEach(r => mapped[r.category] = r.articles);
+    return mapped;
+  } catch (err) {
+    console.error('getNewsHeadlines error', err);
+    return {};
+  }
+};
 
 // 5. Project Ideas Generator
 const getMockProjectIdeas = (interests: string, domain: string): any[] => {

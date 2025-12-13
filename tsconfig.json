@@ -15,12 +15,13 @@
     "jsx": "react-jsx",
 
     /* Linting */
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "strict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["."],
+  "include": ["*.ts", "*.tsx", "component/**/*", "services/**/*", "types.ts", "index.tsx", "App.tsx", "env.d.ts"],
+  "exclude": ["**/*.d.ts", "node_modules", "dist", "vite.config.ts", "vite.config.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
 

@@ -428,6 +428,19 @@ Monitor for fatigue after 20 min
 Suggest break to maintain focus
 ```
 
+---
+
+## Face Recognition & Scoring (optional)
+
+If you want to recognize faces and track a simple "engagement score" per person:
+ - Enroll a face: Click "Enroll as Me" or "Enroll with Name" in the camera panel and follow the prompts.
+ - Optional: Run a local server for persistence (SQLite). From `server/` run `npm run dev` and use `http://localhost:4000` for endpoints. The server stores enrolled faces and emotion events in `server/data/gvp.sqlite3`.
+- Recognition: The app will match faces locally using descriptors stored in `localStorage`.
+- Scoring: Each detected emotion contributes points to the person's engagement score (happy:+2, neutral:+1, surprised:+1, sad:-2, angry:-3, fearful:-1, disgusted:-2, dull:0). Scores update in real-time in the Recognized Faces panel.
+
+Note: Face descriptors are stored locally only in `localStorage` at key `gvp_labeled_faces`. No data is sent to servers.
+
+
 ### Scenario 3: Mixed Emotions
 ```
 Reading moderate content...

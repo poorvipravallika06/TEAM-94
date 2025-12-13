@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
-import { Brain, Zap, Users, FileText, TrendingUp } from 'lucide-react';
+import { Brain, Zap, FileText, TrendingUp } from 'lucide-react';
 import { courseRecommendationAgent, jobMatchingAgent, peerConnectionAgent, interviewPrepAgent } from '../services/aiAgentsServices';
-import { generateRAGResponse, semanticSearch } from '../services/ragServices';
-import { parseResume, matchPeers, predictPerformance } from '../services/mlServices';
+import { generateRAGResponse } from '../services/ragServices';
+import { parseResume } from '../services/mlServices';
 
 const AIEnhancedDashboard: React.FC = () => {
   const [activeAgent, setActiveAgent] = useState<string | null>(null);

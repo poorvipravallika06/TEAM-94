@@ -37,6 +37,9 @@ A comprehensive platform connecting engineering students with MNC opportunities 
    - Add your Google Gemini API key:
      ```
      VITE_API_KEY=your_api_key_here
+
+ - (Optional) Add News API key to enable live news headlines on Trends page:
+    VITE_NEWS_API_KEY=your_newsapi_key_here
      ```
 
 3. **Start the development server:**
@@ -92,6 +95,25 @@ GVP/
 ## Development
 
 The project uses Vite for fast development with hot module replacement (HMR). Any changes you make will automatically reflect in the browser.
+
+### Backend - Local Server / Firestore
+- The project includes a lightweight server under `server` for local persistence. By default it uses a local JSON file at `server/data/gvp.json`.
+- You can enable Firestore by setting the `FIREBASE_SERVICE_ACCOUNT_FILE` or `FIREBASE_SERVICE_ACCOUNT_JSON` env var before running the server (see `server/FIREBASE_SETUP.md` for instructions).
+
+Example for starting server locally (no Firestore):
+```bash
+cd server
+npm install
+npm run dev
+```
+
+Example for starting server with Firestore:
+```bash
+export FIREBASE_SERVICE_ACCOUNT_FILE=/path/to/firestore.json
+cd server
+npm install
+npm run dev
+```
 
 ## License
 
