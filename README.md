@@ -4,6 +4,7 @@
 
 To address this challenge, EduBridge is designed as an AI-powered skilling platform that bridges the gap between current engineering students and industry-relevant tools, technologies, and trends. The platform provides domain-specific learning support through features such as AI Mentors, Notes Converter, Industry Lab Guides, Skill Gap Analysis, Smart Timetables, Mock Interviews, Peer Matching, and MNC Trend insights, enabling students to follow a structured, career-oriented learning path.
 
+
 EduBridge leverages locally integrated Large Language Models (LLMs), Retrieval-Augmented Generation (RAG), and intelligent AI agents to personalize learning, convert complex study materials into simplified notes, and provide real-time guidance without relying on external cloud dependencies. To ensure responsible AI usage and data security, the platform is designed to incorporate AI Guardians and evaluation mechanisms (evals), creating a safe, reliable, and trustworthy learning environment.
 
 Recognizing that students often lose motivation when dealing with long PDFs and dense content, EduBridge transforms static materials into interactive and engaging learning experiences. Through gamified elements such as quizzes, challenges, and interactive activities, the platform helps shift students’ learning mindset, reduce mental fatigue, and make learning enjoyable rather than burdensome.
@@ -347,3 +348,4 @@ BUSSINESS CANVAS MODEL:
 
 
 <img width="904" height="637" alt="image" src="https://github.com/user-attachments/assets/1d971625-d1ca-4982-b57a-8e8395d0bb3c" />
+
