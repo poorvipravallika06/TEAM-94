@@ -92,6 +92,8 @@ To help students stay updated with future tech trends such as AI-first systems, 
 
  
  CORE FEATURES  :
+
+
                                    
 
 <img width="632" height="718" alt="image" src="https://github.com/user-attachments/assets/e39522a3-21a1-4825-b10d-471af9d71aaa" />
@@ -99,13 +101,23 @@ To help students stay updated with future tech trends such as AI-first systems, 
 
 
 1.AI-Powered Skill Recommendations – Personalized learning paths based on strengths and industry needs.
-2.Industry Mentorship – Expert tech mentors providing real-time guidance.                
+
+2.Industry Mentorship – Expert tech mentors providing real-time guidance.  
+
 3.Hands-On Projects & Internships – Practical experience through real-world tasks.
+
 4.Career Readiness Tools – Resume analysis, mock interviews, and role-based insights.
+
 5.Personalized Learning – Adaptive content, analytics, and continuous progress tracking.
+
 6.Skill Gap Identification – AI detects missing skills and suggests improvement areas.
+
 7.Project & Time Management Support – Tools to manage learning schedules effectively.
+
 8. PDF breakhrough generator - Here the pdf's reading gets easier as they have the methods to get refreshed while working on the pdf  ( such as quizes, games etc ) so once they get relief they can read back .
+
+
+
 
 
 
