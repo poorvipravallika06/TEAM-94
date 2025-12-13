@@ -10,13 +10,7 @@ Recognizing that students often lose motivation when dealing with long PDFs and 
 
 By reducing cognitive overload, increasing engagement, and aligning education with real industry expectations, EduBridge empowers engineering students to learn faster, stay motivated, and become truly industry-ready professionals across various engineering domains.
 
-Our platform is designed to bridge the skill gap between current engineering students and the tools, technologies, and hiring expectations of top tech MNCs. We focus on multiple engineering domains and deliver industry-aligned skilling using advanced technologies such as locally integrated Large Language Models (LLMs), Retrieval-Augmented Generation (RAG), and intelligent AI agents.
-
-To ensure safety and reliability, we plan to further integrate security layers such as AI Guardians and evaluation mechanisms (evals), creating a secure and trustworthy learning environment.
-
 Understanding that students often feel overwhelmed by lengthy PDFs and traditional learning materials, our platform transforms static content into engaging, interactive experiences. Instead of forcing continuous reading, we help students shift their mindset through gamified learning—using quizzes, challenges, and interactive games—so learning feels lighter, more engaging, and more effective.
-
-By reducing cognitive load and increasing engagement, we enable students to learn faster, stay motivated, and become truly industry-ready without feeling burdened.
 
 
 
@@ -218,6 +212,7 @@ VIDEO DEMO:
 
 
 
+
 Future Scope of EDU-BRIDGE:
 
 
@@ -242,6 +237,7 @@ Auto-updating skill recommendations based on the latest industry reports, demand
 
 Tech Stack:
 
+
 Frontend
 
 
@@ -260,6 +256,7 @@ TailwindCSS
 
 
 Backend
+
 
 
 Node.js + Express
@@ -283,6 +280,7 @@ Firebase
 
 
 WORKFLOW
+
 
 
 <img width="753" height="471" alt="image" src="https://github.com/user-attachments/assets/d9ced070-fa8a-4205-818e-8c698e1da272" />
