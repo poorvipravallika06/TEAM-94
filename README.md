@@ -23,13 +23,18 @@ By reducing cognitive load and increasing engagement, we enable students to lear
 
 
 
+
+
+
  
  Purpose & Objectives of EDU-BRIDGE
  
 1. Bridge Skill Gaps
+
 To analyze student strengths and weaknesses using AI and recommend personalized skill paths aligned with industry requirements.
 
-2. Provide Industry-Level Exposure
+3. Provide Industry-Level Exposure
+
 To offer hands-on projects, internships, and mentorship from expert tech professionals so students gain real-world experience.
 
 3.Reduce Learning Burden
