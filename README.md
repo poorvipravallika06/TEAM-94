@@ -19,6 +19,27 @@ Understanding that students often feel overwhelmed by lengthy PDFs and tradition
 By reducing cognitive load and increasing engagement, we enable students to learn faster, stay motivated, and become truly industry-ready without feeling burdened.
 
 
+
+
+PROBLEM STATEMENT : 
+
+
+
+Engineering students face a growing gap between academic learning and the tools, technologies, and hiring expectations of top tech MNCs.
+
+Traditional learning methods and lengthy PDFs reduce engagement and increase cognitive load.
+
+Students struggle to stay motivated and industry-ready across multiple engineering domains.
+
+There is a need for an AI-driven, secure, and interactive platform that simplifies learning, increases engagement, and aligns education with real-world industry requirements.
+
+
+
+
+
+PICTORIAL REPRESENTATION : 
+
+
 <img width="760" height="386" alt="image" src="https://github.com/user-attachments/assets/c7f9db99-72cd-44a3-be5a-dd6274a8bc05" />
 
 
@@ -90,8 +111,17 @@ To help students stay updated with future tech trends such as AI-first systems, 
 
 
 
+
+
+
+
+
+
+
  
  CORE FEATURES  :
+
+
 
 
                                    
@@ -117,6 +147,30 @@ To help students stay updated with future tech trends such as AI-first systems, 
 8. PDF breakhrough generator - Here the pdf's reading gets easier as they have the methods to get refreshed while working on the pdf  ( such as quizes, games etc ) so once they get relief they can read back .
 
 
+
+
+
+
+
+SYSTEM ARCHITECTURE : 
+
+
+
+
+
+| **Layer**                 | **Components**                                                                                          | **Function / Purpose**                                                        |
+| ------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **User Layer**            | Students, Mentors/Admin                                                                                 | Access content, monitor progress, create/evaluate modules                     |
+| **Application Layer**     | Content Management                                                                                      | Convert PDFs to notes, provide interactive learning modules                   |
+|                           | Skill Gap Analysis                                                                                      | Personalized learning paths based on industry requirements                    |
+|                           | AI Learning Assistant                                                                                   | Locally integrated LLMs, RAG, AI agents for guidance                          |
+|                           | Gamification Engine                                                                                     | Quizzes, games, challenges to enhance engagement                              |
+|                           | Mock Interviews & Career Prep                                                                           | AI-driven interview practice                                                  |
+|                           | Security Layer                                                                                          | AI Guardians & evaluation mechanisms for safe learning                        |
+| **Data Layer**            | Learning Content Repository, Student Profiles, Industry Trends, AI Model Data                           | Store and manage learning materials, student data, and AI resources           |
+| **AI & Processing Layer** | LLMs, RAG, AI Agents, Evaluation Mechanisms                                                             | Provide personalized guidance, content retrieval, tutoring, and safety checks |
+| **Interface Layer**       | Web/Mobile Dashboards, Notifications                                                                    | Display content, updates, and interactive modules to students and mentors     |
+| **Workflow**              | Login → Select Domain → AI Guidance → Skill Analysis → Gamification → Secure Learning → Mock Interviews | End-to-end learning and industry readiness process                            |
 
 
 
