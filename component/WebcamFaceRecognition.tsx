@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as faceapi from 'face-api.js';
+import { loadFERModel, predictFER } from '../services/ferModelService';
+import * as tf from '@tensorflow/tfjs';
 import { X, Camera, Loader2, Download } from 'lucide-react';
 import { analyzeEmotionWithLLM, generateEmotionReport } from '../services/geminiServices';
 
@@ -18,6 +20,7 @@ const WebcamFaceRecognition: React.FC<WebcamFaceRecognitionProps> = ({ onClose, 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [ferModel, setFerModel] = useState<tf.LayersModel | null>(null);
   const [isDetecting, setIsDetecting] = useState(true);
   const [expressions, setExpressions] = useState<FaceData[]>([]);
   const [currentExpression, setCurrentExpression] = useState<string>('');
@@ -59,6 +62,19 @@ const WebcamFaceRecognition: React.FC<WebcamFaceRecognitionProps> = ({ onClose, 
         setIsLoading(false);
         // After loading models, load any labeled faces
         await loadLabeledFaces();
+        // Load FER-2013 TensorFlow model if provided via env
+        try {
+          const modelUrl = (process.env.REACT_APP_FER_MODEL_URL || process.env.VITE_FER_MODEL_URL || (import.meta as any).env?.VITE_FER_MODEL_URL) as string | undefined;
+          if (modelUrl) {
+            const m = await loadFERModel(modelUrl);
+            if (m) {
+              setFerModel(m);
+              console.log('FER model loaded from', modelUrl);
+            }
+          }
+        } catch (err) {
+          console.warn('Failed loading FER model', err);
+        }
       } catch (error) {
         console.error('Error loading face-api models:', error);
         alert('Failed to load face recognition models. Please refresh the page and try again.');
@@ -180,24 +196,8 @@ const WebcamFaceRecognition: React.FC<WebcamFaceRecognitionProps> = ({ onClose, 
         }
 
         // Draw detections
-        resizedDetections.forEach((detection: any) => {
+        for (const detection of resizedDetections) {
           const box = detection.detection.box;
-          const isRecognized = nameLabel && nameLabel !== 'unknown';
-          ctx?.strokeRect(box.x, box.y, box.width, box.height);
-          ctx!.strokeStyle = isRecognized ? '#ef4444' : '#4f46e5';
-          ctx!.lineWidth = 2;
-
-          // Get dominant expression
-          const expressions = detection.expressions as Record<string, number>;
-          const dominantExpression = Object.entries(expressions).reduce((a: [string, number], b: [string, number]) =>
-            a[1] > b[1] ? a : b
-          );
-
-          const expression = dominantExpression[0];
-          const confidence = ((dominantExpression[1] as number) * 100).toFixed(1);
-
-          setCurrentExpression(`${expression} (${confidence}%)`);
-
           // Determine recognition label (if labeled faces exist)
           let nameLabel = 'unknown';
           try {
@@ -211,6 +211,50 @@ const WebcamFaceRecognition: React.FC<WebcamFaceRecognitionProps> = ({ onClose, 
           } catch (err) {
             console.warn('Recognition error:', err);
           }
+          const isRecognized = nameLabel && nameLabel !== 'unknown';
+          // Draw bounding box
+          ctx!.strokeStyle = isRecognized ? '#ef4444' : '#4f46e5';
+          ctx!.lineWidth = 3;
+          ctx?.strokeRect(box.x, box.y, box.width, box.height);
+
+          // Extract expression - use FER model if available, otherwise fall back to face-api expression
+          let expression = 'unknown';
+          let confidence = '0.0';
+          if (ferModel) {
+            try {
+              const tmp = document.createElement('canvas');
+              tmp.width = Math.max(1, Math.floor(box.width));
+              tmp.height = Math.max(1, Math.floor(box.height));
+              const tctx = tmp.getContext('2d');
+              if (tctx && videoRef.current) {
+                // Map display box coordinates back to video pixels
+                const video = videoRef.current as HTMLVideoElement;
+                const scaleX = video.videoWidth / displaySize.width;
+                const scaleY = video.videoHeight / displaySize.height;
+                const sx = Math.floor(box.x * scaleX);
+                const sy = Math.floor(box.y * scaleY);
+                const sw = Math.floor(box.width * scaleX);
+                const sh = Math.floor(box.height * scaleY);
+                tctx.drawImage(videoRef.current, sx, sy, sw, sh, 0, 0, tmp.width, tmp.height);
+                // eslint-disable-next-line no-await-in-loop
+                const res = await predictFER(ferModel, tmp);
+                if (res) {
+                  expression = res.label;
+                  confidence = res.confidence.toFixed(1);
+                }
+              }
+            } catch (err) {
+              console.warn('FER model predict failed', err);
+            }
+          } else {
+            const expressions = (detection as any).expressions as Record<string, number>;
+            const dominantExpression = Object.entries(expressions).reduce((a: [string, number], b: [string, number]) =>
+              a[1] > b[1] ? a : b
+            );
+            expression = dominantExpression[0];
+            confidence = ((dominantExpression[1] as number) * 100).toFixed(1);
+          }
+          setCurrentExpression(`${expression} (${confidence}%)`);
 
           // Add to expressions history
           const faceData: FaceData = {
@@ -271,15 +315,11 @@ const WebcamFaceRecognition: React.FC<WebcamFaceRecognitionProps> = ({ onClose, 
             postEventToServer({ face_label: nameLabel || 'unknown', emotion: expression, confidence: parseFloat(confidence as string), delta: deltaVal, timestamp: new Date().toISOString() });
           }
 
-            if (shouldUpdate) {
-              postEventToServer({ face_label: nameLabel || 'unknown', emotion: expression, confidence: parseFloat(confidence as string), delta: deltaVal, timestamp: new Date().toISOString() });
-            }
-
           // Draw expression label including computed display score and name if recognized
           ctx!.fillStyle = '#4f46e5';
           ctx!.font = 'bold 16px Arial';
           const namePart = nameLabel && nameLabel !== 'unknown' ? `${nameLabel} • ` : '';
-          const drawText = `${namePart}${expression} • ${displayScore} pts`;
+          const drawText = `${namePart}${expression} (${confidence}%) • ${displayScore} pts`;
           ctx!.font = 'bold 16px Arial';
           const w = (ctx!.measureText(drawText).width || 0) + 8;
           ctx!.fillStyle = 'rgba(0,0,0,0.6)';

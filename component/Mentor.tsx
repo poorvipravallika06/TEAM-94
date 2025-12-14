@@ -257,5 +257,5 @@ const Mentor: React.FC = () => {
     </div>
   );
 };
-
+//change the dashboard picture...
 export default Mentor;

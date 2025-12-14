@@ -130,7 +130,9 @@ const Notes: React.FC = () => {
                   question: `Summarize and create detailed study notes for: ${fullText.substring(0, 300)}` 
                 });
                 if (ragResult.answer) {
-                  notes = `${notes}\n\n---\n\n**Knowledge Base Enhancement:**\n${ragResult.answer}`;
+                  // Re-synthesize notes with RAG content to ensure paraphrasing and integration (avoid verbatim copying)
+                  setProgress('Integrating knowledge base into notes...');
+                  notes = await generateNotesQuick({ content: `${notes}\n\nKnowledgeBase:\n${ragResult.answer}`, mode: notesMode });
                 }
               } catch (ragErr) {
                 console.log('RAG enhancement skipped:', ragErr);
@@ -163,7 +165,8 @@ const Notes: React.FC = () => {
               question: `Create detailed study notes for: ${pastedText.substring(0, 300)}` 
             });
             if (ragResult.answer) {
-              notes = `${notes}\n\n---\n\n**Knowledge Base Enhancement:**\n${ragResult.answer}`;
+              setProgress('Integrating knowledge base into notes...');
+              notes = await generateNotesQuick({ content: `${notes}\n\nKnowledgeBase:\n${ragResult.answer}`, mode: notesMode });
             }
           } catch (ragErr) {
             console.log('RAG enhancement skipped:', ragErr);
@@ -434,10 +437,17 @@ const Notes: React.FC = () => {
                   >
                     <X className="h-4 w-4" />
                     Remove File
+                  </button>
                   <button
                     onClick={() => { resetEmotionPoints(); setShowCameraView(true); }}
+                    className="text-indigo-600 hover:text-indigo-800 flex items-center gap-1 text-sm font-medium ml-3"
+                  >
+                    <Camera className="h-4 w-4" />
+                    Read with Camera
+                  </button>
+                </div>
               )}
-      </div>
+            </div>
 
             {/* Text Paste Section */}
             <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">

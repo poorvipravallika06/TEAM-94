@@ -89,3 +89,4 @@ export interface StudentHistory {
   attendance: number[]; // percentages per semester/month
   studyHours?: number[];
 }
+ //camera accesssss

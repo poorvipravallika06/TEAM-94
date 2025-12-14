@@ -43,7 +43,7 @@ Requirements:
 Content:
 ${input.content.substring(0, 4000)}`;
 
-                const response = await (ai as any).generateContent({
+                const response = await (ai as any).models.generateContent({
                     contents: [{ text: concisePrompt }],
                     generationConfig: { maxOutputTokens: 1200, temperature: 0.2 }
                 });
@@ -53,7 +53,7 @@ ${input.content.substring(0, 4000)}`;
 
             // Combine chunk summaries into final concise notes
             const finalPrompt = `Combine and synthesize the following chunk summaries into a single concise revision notes document. Do not quote verbatim; paraphrase & condense. Output should be 500-700 words and include 8-12 key takeaways, 3 quick tips, and 5 practice prompts. Synthesize tone and avoid repetition.\n\n${chunkSummaries.join('\n\n--- Chunk Summary ---\n\n')}`;
-            const finalResponse = await (ai as any).generateContent({
+            const finalResponse = await (ai as any).models.generateContent({
                 contents: [{ text: finalPrompt }],
                 generationConfig: { maxOutputTokens: 1200, temperature: 0.2 }
             });
@@ -74,7 +74,7 @@ ${input.content.substring(0, 4000)}`;
             const chunkSummaries: string[] = [];
             for (const chunk of chunks) {
                 const summaryPrompt = `Create a concise study guide of approximately 600-900 words for this chunk. Use headings, concise definitions, and bullet points. Paraphrase; avoid copying verbatim. Include 3 practice problems as prompts.\n\nChunk Content:\n${chunk}`;
-                const response = await (ai as any).generateContent({
+                const response = await (ai as any).models.generateContent({
                     contents: [{ text: summaryPrompt }],
                     generationConfig: { maxOutputTokens: 900, temperature: 0.25 }
                 });
@@ -83,7 +83,7 @@ ${input.content.substring(0, 4000)}`;
             }
 
             const finalPrompt = `Combine the chunk summaries into a single 1500-2500 word study guide. Paraphrase; avoid quoting verbatim; highlight key takeaways, include a comparison section and 8 practice prompts.\n\n${chunkSummaries.join('\n\n--- Chunk Summary ---\n\n')}`;
-            const finalResponse = await (ai as any).generateContent({
+            const finalResponse = await (ai as any).models.generateContent({
                 contents: [{ text: finalPrompt }],
                 generationConfig: { maxOutputTokens: 2500, temperature: 0.25 }
             });
@@ -194,7 +194,7 @@ Content:
 ${input.content.substring(0, 4000)}`;
 
         console.log('Sending to Gemini API for extensive 30-page notes generation...');
-        const response = await (ai as any).generateContent({
+        const response = await (ai as any).models.generateContent({
             contents: [{ text: prompt }],
             generationConfig: {
                 maxOutputTokens: 10000, // Allow very long output for 30 pages

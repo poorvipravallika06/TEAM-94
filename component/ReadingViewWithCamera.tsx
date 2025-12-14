@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, Volume2, Download, Zap } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import * as faceapi from 'face-api.js';
+import { loadFERModel, predictFER } from '../services/ferModelService';
+import * as tf from '@tensorflow/tfjs';
 import AIReliefGame from './AIReliefGame.tsx';
 
 interface ReadingViewWithCameraProps {
@@ -52,6 +54,7 @@ const ReadingViewWithCamera: React.FC<ReadingViewWithCameraProps> = ({
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [analysisResults, setAnalysisResults] = useState<string>('');
   const [tfLoaded, setTfLoaded] = useState(false);
+  const [ferModel, setFerModel] = useState<tf.LayersModel | null>(null);
   const [labeledDescriptorsLoaded, setLabeledDescriptorsLoaded] = useState(false);
   const labeledDescriptorsRef = useRef<any[]>([]);
   const faceMatcherRef = useRef<any>(null);
@@ -146,6 +149,19 @@ const ReadingViewWithCamera: React.FC<ReadingViewWithCameraProps> = ({
 
       // After models are loaded, load any labeled faces for recognition
       await loadLabeledFaces();
+      // Attempt to load a FER-2013 TF.js model if provided through environment variables
+      try {
+        const modelUrl = (process.env.REACT_APP_FER_MODEL_URL || process.env.VITE_FER_MODEL_URL || (import.meta as any).env?.VITE_FER_MODEL_URL) as string | undefined;
+        if (modelUrl) {
+          const m = await loadFERModel(modelUrl);
+          if (m) {
+            setFerModel(m);
+            console.log('FER model loaded in ReadingViewWithCamera from', modelUrl);
+          }
+        }
+      } catch (err) {
+        console.warn('FER model load failed in ReadingViewWithCamera', err);
+      }
     };
     
     initializeAsync();
@@ -562,23 +578,46 @@ const ReadingViewWithCamera: React.FC<ReadingViewWithCameraProps> = ({
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             // Draw face box
-              resizedDetections.forEach((detectionItem: any) => {
+              for (const detectionItem of resizedDetections) {
               const box = detectionItem.detection.box;
-              const isRecognized = nameKey && nameKey !== 'unknown';
-              ctx.strokeStyle = isRecognized ? '#ef4444' : '#4f46e5';
-              ctx.lineWidth = 2;
-              ctx.strokeRect(box.x, box.y, box.width, box.height);
 
-              // For each detection compute emotion label and recognition name (if available)
+              // For each detection compute emotion label and recognition name (if available).
+              // Prefer FER-2013 model if available for improved accuracy.
               const exprs = (detectionItem.expressions || {}) as Record<string, number>;
               let dominantLabel = dominant; // fallback
               let dominantPct = Math.round((fullEmotions[dominant] || 0) * 100);
-              // If expressions exist per-detection, compute its dominant
-              if (Object.keys(exprs).length > 0) {
-                const eEntries = Object.entries(exprs);
-                const dEntry = eEntries.reduce((a, b) => (b[1] as number) > (a[1] as number) ? b : a);
-                dominantLabel = dEntry[0];
-                dominantPct = Math.round((dEntry[1] || 0) * 100);
+              if (ferModel) {
+                try {
+                  const tmp = document.createElement('canvas');
+                  tmp.width = Math.max(1, Math.floor(box.width));
+                  tmp.height = Math.max(1, Math.floor(box.height));
+                  const tctx = tmp.getContext('2d');
+                  if (tctx && videoRef.current) {
+                    const scaleX = videoRef.current.videoWidth / displaySize.width;
+                    const scaleY = videoRef.current.videoHeight / displaySize.height;
+                    const sx = Math.floor(box.x * scaleX);
+                    const sy = Math.floor(box.y * scaleY);
+                    const sw = Math.floor(box.width * scaleX);
+                    const sh = Math.floor(box.height * scaleY);
+                    tctx.drawImage(videoRef.current, sx, sy, sw, sh, 0, 0, tmp.width, tmp.height);
+                    // eslint-disable-next-line no-await-in-loop
+                    const res = await predictFER(ferModel, tmp);
+                    if (res) {
+                      dominantLabel = res.label as keyof typeof fullEmotions;
+                      dominantPct = Math.round(res.confidence || 0);
+                    }
+                  }
+                } catch (err) {
+                  console.warn('FER predict failed', err);
+                }
+              } else {
+                // If expressions exist per-detection, compute its dominant
+                if (Object.keys(exprs).length > 0) {
+                  const eEntries = Object.entries(exprs);
+                  const dEntry = eEntries.reduce((a, b) => (b[1] as number) > (a[1] as number) ? b : a);
+                  dominantLabel = dEntry[0];
+                  dominantPct = Math.round((dEntry[1] || 0) * 100);
+                }
               }
 
               // Recognition per-detection and scoring
@@ -608,6 +647,11 @@ const ReadingViewWithCamera: React.FC<ReadingViewWithCameraProps> = ({
               } catch (err) {
                 console.warn('Per-face recognition failed', err);
               }
+
+              const isRecognized = nameKey && nameKey !== 'unknown';
+              ctx.strokeStyle = isRecognized ? '#ef4444' : '#4f46e5';
+              ctx.lineWidth = 2;
+              ctx.strokeRect(box.x, box.y, box.width, box.height);
 
               // Compute delta & score for label
               const pointsMapLabel: Record<string, number> = { happy: 2, neutral: 1, surprised: 1, sad: -2, angry: -3, fearful: -1, disgusted: -2, dull: 0 };
@@ -686,7 +730,7 @@ const ReadingViewWithCamera: React.FC<ReadingViewWithCameraProps> = ({
                     return { ...prev, [dominantLabel]: (prev[dominantLabel] || 0) + add };
                   });
                 }
-            });
+            }
           }
         } else {
           // No detections from face-api — try a lightweight TF.js landmarks fallback
@@ -697,14 +741,17 @@ const ReadingViewWithCamera: React.FC<ReadingViewWithCameraProps> = ({
             if (!tfModelRef.current && !tfLoaded) {
               console.debug('Loading TensorFlow face-landmarks-detection from CDN...');
               try {
-                    // @ts-ignore - dynamic CDN import used at runtime in browser
-                    await import('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js');
+                    // load TensorFlow runtime by injecting script tag (avoids bundler parsing)
+                    await loadExternalScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js');
                   } catch (e) {
-                console.warn('tf import may already exist or failed:', e);
+                console.warn('tf script load may already exist or failed:', e);
               }
-                  // @ts-ignore - dynamic CDN import used at runtime in browser
-                  const fld = await import('https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@0.0.7/dist/face-landmarks-detection.min.js');
-              tfModelRef.current = await fld.load(fld.SupportedPackages.mediapipeFacemesh, { maxFaces: 1 });
+                  // load face-landmarks-detection UMD script and access the global
+                  await loadExternalScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@0.0.7/dist/face-landmarks-detection.min.js');
+                  const fld = (window as any).faceLandmarksDetection || (window as any)['faceLandmarksDetection'];
+              if (fld && fld.load) {
+                tfModelRef.current = await fld.load(fld.SupportedPackages.mediapipeFacemesh, { maxFaces: 1 });
+              }
               setTfLoaded(true);
               console.debug('TF face-landmarks model loaded');
             }
@@ -832,6 +879,22 @@ const ReadingViewWithCamera: React.FC<ReadingViewWithCameraProps> = ({
       }
     }, 500); // Detection every 500ms (optimized for speed)
   };
+
+  // Helper: Load remote script via plain <script> tag (avoids bundler parse errors)
+  const loadExternalScript = (url: string) => new Promise<void>((resolve, reject) => {
+    try {
+      const existing = document.querySelector(`script[src="${url}"]`);
+      if (existing) return resolve();
+      const s = document.createElement('script');
+      s.src = url;
+      s.async = true;
+      s.onload = () => resolve();
+      s.onerror = (e) => reject(e);
+      document.head.appendChild(s);
+    } catch (err) {
+      reject(err);
+    }
+  });
 
   // Start a short analysis session that aggregates dominant emotions
   const startAnalysis = (seconds = 10) => {
