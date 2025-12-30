@@ -71,6 +71,41 @@ const getMockSkillGap = (targetRole: string): any => {
   return { missingSkills, matchScore, roleFit };
 };
 
+// Mock company fit analysis used when API unavailable
+const getMockAnalysis = (company: string, role: string): any => {
+  const roleLower = role.toLowerCase();
+  let matchScore = 70;
+  let culturalFit = `Your profile shows a solid foundation for ${role} at ${company}. Highlight projects and measurable impact to improve fit.`;
+  let technicalGaps = [
+    'Domain-specific hands-on projects',
+    'System design exposure',
+    'Unit testing & CI/CD familiarity'
+  ];
+
+  if (roleLower.includes('frontend')) {
+    matchScore = 75;
+    culturalFit = `Strong frontend fundamentals detected. Emphasize component design, performance, and accessibility for ${company}.`;
+    technicalGaps = ['Advanced React patterns', 'TypeScript typing', 'Performance optimization'];
+  } else if (roleLower.includes('backend')) {
+    matchScore = 68;
+    culturalFit = `Backend skills present. Focus on scalable architectures and observability to align with ${company}.`;
+    technicalGaps = ['Microservices', 'Database indexing', 'Distributed tracing'];
+  } else if (roleLower.includes('data') || roleLower.includes('machine')) {
+    matchScore = 62;
+    culturalFit = `Good analytical background. Strengthen production ML deployment and feature engineering for ${company}.`;
+    technicalGaps = ['Model deployment', 'Feature stores', 'Spark/BigQuery'];
+  }
+
+  const accelerationPlan = [
+    { week: 'WEEK 1', focus: 'Core fundamentals', tasks: ['Revise core concepts', 'Complete 2 small exercises'] },
+    { week: 'WEEK 2', focus: 'Hands-on project', tasks: ['Build a mini project', 'Write tests and README'] },
+    { week: 'WEEK 3', focus: 'Interview prep', tasks: ['Solve 10 algorithm problems', 'Mock interviews'] },
+    { week: 'WEEK 4', focus: 'Polish and apply', tasks: ['Tailor resume', 'Apply to 5 roles'] }
+  ];
+
+  return { matchScore, culturalFit, technicalGaps, accelerationPlan };
+};
+
 export const analyzeCompanyFit = async (
     resumeInput: { content: string, mimeType?: string }, 
     company: string, 
@@ -80,7 +115,8 @@ export const analyzeCompanyFit = async (
   try {
     if (!ai || !apiKey || apiKey === 'your_api_key_here') {
       console.warn('API key not configured. Using local heuristic analysis.');
-      return localCompanyFitAnalysis(resumeInput, company, role);
+      // fallback to mock analysis when no API available
+      return getMockAnalysis(company, role);
     }
 
     const systemPrompt = `

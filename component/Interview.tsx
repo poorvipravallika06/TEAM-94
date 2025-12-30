@@ -215,7 +215,7 @@ const Interview: React.FC = () => {
                 }
 
                 // compute attention score
-                const expr = detection.expressions || {};
+                const expr: any = (detection.expressions as any) || {};
                 const engagement = Math.max(0, (expr.happy || 0) + (expr.surprised || 0) + (expr.neutral || 0)*0.5 - ((expr.sad||0) + (expr.angry||0) + (expr.fearful||0) + (expr.disgusted||0)));
 
                 const landmarks = detection.landmarks;

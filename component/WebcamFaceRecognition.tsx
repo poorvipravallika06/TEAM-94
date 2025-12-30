@@ -544,7 +544,7 @@ const WebcamFaceRecognition: React.FC<WebcamFaceRecognitionProps> = ({ onClose, 
                       const map = displayStats || { happy:0, sad:0, angry:0, dull:0, surprised:0, fearful:0, disgusted:0, neutral:0 };
                       const total = Object.values(map).reduce((s: number, n: any) => s + Number(n), 0) || 1;
                       return Object.entries(map).map(([k, v]) => {
-                        const pct = (Number(v) / total) * 100;
+                        const pct = (Number(v) / Number(total)) * 100;
                         const h = Math.max(3, Math.round(pct));
                         return (
                           <div key={k} className="flex-1 flex flex-col items-center">

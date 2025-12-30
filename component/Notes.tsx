@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
+// pdfjs is imported dynamically at runtime to avoid type/resolution issues during build
 import { generateNotesQuick } from '../services/quickNotesService';
 import { generateRAGResponse } from '../services/ragServices';
 import { Upload, FileText, X, Download, Loader2, File, Eye, Camera } from 'lucide-react';
@@ -68,6 +68,15 @@ const Notes: React.FC = () => {
         // Extract text from PDF using pdfjs
         try {
           setProgress('Extracting text from PDF...');
+          // Dynamically import pdfjs at runtime to avoid bundler/type issues
+          let pdfjsLib: any = null;
+          try {
+            pdfjsLib = await import('pdfjs-dist');
+          } catch (e) {
+            console.warn('pdfjs dynamic import failed, falling back to base64 send', e);
+          }
+          if (!pdfjsLib) throw new Error('pdfjs import failed');
+
           // set worker from CDN to avoid bundler issues
           (pdfjsLib as any).GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 

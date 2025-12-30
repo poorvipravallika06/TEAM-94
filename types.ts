@@ -80,3 +80,6 @@ export interface QuizQuestion {
   options: string[];
   correctIndex: number;
 }
+
+// Ambient module declaration for legacy pdfjs import used in component/Notes.tsx
+declare module 'pdfjs-dist';

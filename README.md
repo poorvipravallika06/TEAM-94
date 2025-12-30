@@ -279,6 +279,28 @@ Firebase
 
 
 
+## Run locally
+
+- Install dependencies:
+
+```bash
+npm install
+```
+
+- Run development server (Vite / HMR):
+
+```bash
+npm run dev
+```
+
+- Build and serve production bundle (static server):
+
+```bash
+npm run build
+npm start
+```
+
+The production server listens on `PORT` (default `3000`).
 
 WORKFLOW
 
